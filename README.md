@@ -43,9 +43,9 @@ This program requires FFmpeg to be installed and available in your system PATH f
 
 ### Python Libraries
 Install the required Python dependencies via pip:
-
+``` 
 pip install requests faster-whisper tqdm
-
+``` 
 Note: Local mode requires approximately 1.5 GB of disk space to download the default "medium.en" Whisper model upon first use.
 
 ## Installation
@@ -59,50 +59,21 @@ Note: Local mode requires approximately 1.5 GB of disk space to download the def
 
 ### 1. Local Mode
 Local mode processes the audio entirely on your CPU. This is the most private option as no data leaves your machine.
-
+``` 
 python meeting2text.py mario.mp4 --mode local
-
+``` 
 ### 2. Cloud Mode
 Cloud mode uploads compressed audio chunks to NVIDIA's servers to leverage high-performance multimodal models. This mode also generates a structured summary.
-
+``` 
 python meeting2text.py mario.mp4 --mode cloud --api-key YOUR_NVIDIA_API_KEY
-
-## Performance Benchmarks
-
-Performance between cloud and CPU modes can differ a lot depending on your local hardware and network conditions. In the benchmark data provided below for a 6-minute video file, the total elapsed time is almost the same. This is common when using free-tier cloud models that can be lower in performance or experience higher latency during the reasoning-heavy summary phase compared to local CPU transcription.
-
-### Benchmark Data: 6-Minute Video File
-
-#### Cloud Mode Performance (Total: 5m 59s)
-Cloud mode transcribes audio chunks very quickly but the summary generation for a full meeting can take several minutes on the free tier.
-``` 
-Phase timings:
-  Audio extraction             2s
-  Audio splitting              1s
-  Transcription             1m 24s  (2 chunks)
-  Summary                   4m 31s
---------------------------------------------------------------
-  Total elapsed             5m 59s
-``` 
-#### Local Mode Performance (Total: 7m 30s)
-Local mode speed is determined entirely by your CPU. It transcribes the file in one continuous pass and does not generate a summary. Benchmark CPU: 12-Core / 24-Thread High-Performance Desktop CPU @ 3.8 GHz
-``` 
-Phase timings:
-  Audio extraction             0s
-  Model load                   7s
-  Transcription             7m 17s
---------------------------------------------------------------
-  Total elapsed             7m 30s
-``` 
-## Data Privacy
-
-When using Cloud Mode, your audio data is uploaded to NVIDIA's servers and processed by third-party models (Microsoft Phi-4 and Mistral Large). Do not proceed if your recording contains confidential, sensitive, or personally identifiable information that must not leave your organisation's systems. Local Mode is recommended for all sensitive data.
+```
 
 ## Output
 
 The program generates two primary files in the same directory as the input:
 1. [filename].txt: The full verbatim transcript.
 2. [filename]_summary.txt: A structured meeting summary (Cloud Mode only).
+
 
 ## Example Usage
 
@@ -213,6 +184,35 @@ C:\dojo\meeting2text>python meeting2text.py --mode cloud mario.mp4 --api-key <ap
     C:\dojo\meeting2text\mario_summary.txt
 ══════════════════════════════════════════════════════════════
 ``` 
+## Performance Benchmarks
 
+Performance between cloud and CPU modes can differ a lot depending on your local hardware and network conditions. In the benchmark data provided below for a 6-minute video file, the total elapsed time is almost the same. This is common when using free-tier cloud models that can be lower in performance or experience higher latency during the reasoning-heavy summary phase compared to local CPU transcription.
+
+### Benchmark Data: 6-Minute Video File
+
+#### Cloud Mode Performance (Total: 5m 59s)
+Cloud mode transcribes audio chunks very quickly but the summary generation for a full meeting can take several minutes on the free tier.
+``` 
+Phase timings:
+  Audio extraction             2s
+  Audio splitting              1s
+  Transcription             1m 24s  (2 chunks)
+  Summary                   4m 31s
+--------------------------------------------------------------
+  Total elapsed             5m 59s
+``` 
+#### Local Mode Performance (Total: 7m 30s)
+Local mode speed is determined entirely by your CPU. It transcribes the file in one continuous pass and does not generate a summary. Benchmark CPU: 12-Core / 24-Thread High-Performance Desktop CPU @ 3.8 GHz
+``` 
+Phase timings:
+  Audio extraction             0s
+  Model load                   7s
+  Transcription             7m 17s
+--------------------------------------------------------------
+  Total elapsed             7m 30s
+``` 
+## Data Privacy
+
+When using Cloud Mode, your audio data is uploaded to NVIDIA's servers and processed by third-party models (Microsoft Phi-4 and Mistral Large). Do not proceed if your recording contains confidential, sensitive, or personally identifiable information that must not leave your organisation's systems. Local Mode is recommended for all sensitive data.
 
 
