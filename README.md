@@ -2,6 +2,31 @@
 
 Meeting2Text is a Python-based utility to convert video e.g. meeting recordings into clean text transcripts and structured summaries. It supports two distinct operational modes: a local mode using Faster-Whisper for private, on-device processing, and a cloud mode utilizing NVIDIA NIM free models for transcription and summarization.
 
+## Usage
+``` 
+usage: meeting2text.py [-h] --mode {local,cloud} [--ffmpeg FFMPEG] [--output OUTPUT] [--keep-wav] [--whisper-model WHISPER_MODEL] [--api-key API_KEY] [--chunk-min CHUNK_MIN] input
+
+Transcribe and optionally summarise a meeting recording.
+
+positional arguments:
+  input                 Path to the input file.
+
+options:
+  -h, --help            show this help message and exit
+  --mode {local,cloud}  Transcription backend.
+  --ffmpeg FFMPEG       Path to ffmpeg executable.
+  --output OUTPUT       Transcript output path.
+  --keep-wav            Keep intermediate WAV.
+
+local mode options:
+  --whisper-model WHISPER_MODEL
+                        Whisper model size.
+
+cloud mode options:
+  --api-key API_KEY     NVIDIA NIM API key.
+  --chunk-min CHUNK_MIN
+                        Chunk length in minutes.
+``` 
 ## Features
 
 - Local transcription using Faster-Whisper (CPU-based).
@@ -79,9 +104,7 @@ The program generates two primary files in the same directory as the input:
 1. [filename].txt: The full verbatim transcript.
 2. [filename]_summary.txt: A structured meeting summary (Cloud Mode only).
 
-## Benchmark Example
-
-
+## Example Usage
 
 ### Local mode using the CPU and "Whisper" model
 
