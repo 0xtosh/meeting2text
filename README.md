@@ -4,28 +4,8 @@ Meeting2Text is a Python-based utility to convert video e.g. meeting recordings 
 
 ## Usage
 ``` 
-usage: meeting2text.py [-h] --mode {local,cloud} [--ffmpeg FFMPEG] [--output OUTPUT] [--keep-wav] [--whisper-model WHISPER_MODEL] [--api-key API_KEY] [--chunk-min CHUNK_MIN] input
+usage: meeting2text.py [-h] --mode {local,cloud} [--ffmpeg FFMPEG] [--output OUTPUT] [--keep-wav] [--whisper-model WHISPER_MODEL] [--provider {nvidia,gemini}] [--chunk-min CHUNK_MIN] [--api-key API_KEY] [--gemini-key GEMINI_KEY] [--gemini-model GEMINI_MODEL] input
 
-Transcribe and optionally summarise a meeting recording.
-
-positional arguments:
-  input                 Path to the input file.
-
-options:
-  -h, --help            show this help message and exit
-  --mode {local,cloud}  Transcription backend.
-  --ffmpeg FFMPEG       Path to ffmpeg executable.
-  --output OUTPUT       Transcript output path.
-  --keep-wav            Keep intermediate WAV.
-
-local mode options:
-  --whisper-model WHISPER_MODEL
-                        Whisper model size.
-
-cloud mode options:
-  --api-key API_KEY     NVIDIA NIM API key.
-  --chunk-min CHUNK_MIN
-                        Chunk length in minutes.
 ``` 
 ## Features
 
