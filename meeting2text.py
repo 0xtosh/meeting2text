@@ -7,7 +7,7 @@ structured summary. Outputs a transcript .txt file and in cloud mode a _summary.
 
 Cloud providers:
   --provider nvidia   NVIDIA NIM (Phi-4 / Mistral)  [default]
-  --provider gemini   Google Gemini 3.1 Pro (audio + text)
+  --provider gemini   Google Gemini 2.5 Pro (audio + text)
 ───────────────────────────────────────────────────────────────────────────────────────────────────
 
 python meeting2text.py recording.mp4 --mode cloud --provider gemini \
@@ -55,7 +55,7 @@ CHUNK_MINUTES_DEFAULT = 5
 WHISPER_MODEL_DEFAULT = "medium.en"
 
 # ── OPTIONAL: hard-code your API keys here ────────────────────────────────────
-NVIDIA_API_KEY_DEFAULT  = ""   # paste your NVIDIA AI Studio key here
+NVIDIA_API_KEY_DEFAULT  = ""
 GEMINI_API_KEY_DEFAULT  = ""   # paste your Google AI Studio key here
 
 
@@ -206,6 +206,27 @@ def run_local(args, src: Path, wav: Path, txt: Path, t_start: float):
     print(f"\nDONE! Total elapsed {fmt_t(time.time() - t_start)}\n")
 
 
+def split_audio_mp3(ffmpeg: str, src: Path, chunk_seconds: float, tmp_dir: Path, 
+                    t_start: float) -> tuple[list[Path], float]:
+    t_phase_start = time.time()
+    print(f"\n[2/4] Splitting audio into {chunk_seconds/60:.0f}-minute chunks...")
+    
+    # Use .mp3 extension since we are encoding with libmp3lame
+    pattern = str(tmp_dir / "chunk_%04d.mp3")
+    cmd = [
+        ffmpeg, "-y", "-i", str(src),
+        "-f", "segment", "-segment_time", str(int(chunk_seconds)),
+        "-acodec", "libmp3lame", "-b:a", "32k", "-ar", "16000", "-ac", "1",
+        pattern,
+    ]
+    run_cmd(cmd, "audio splitting")
+    chunks = sorted(tmp_dir.glob("chunk_*.mp3"))
+    t_end = time.time()
+    
+    print(f"      {len(chunks)} chunks created")
+    return chunks, t_end
+
+    
 # ─────────────────────────────────────────────────────────────────────────────
 # NVIDIA CLOUD MODE
 # ─────────────────────────────────────────────────────────────────────────────
@@ -499,65 +520,62 @@ def summarise_gemini(api_key: str, model: str, transcript: str,
     return summary, t_end - t_phase_start
 
 
-def run_cloud_gemini(args, src: Path, wav: Path, txt: Path, t_start: float,
-                     api_key: str):
+def run_cloud_gemini(args, src: Path, wav: Path, txt: Path, t_start: float, api_key: str):
     model        = args.gemini_model
     summary_file = txt.with_name(txt.stem + "_summary.txt")
-    mp3_path     = wav.with_suffix(".mp3")
+    tmp_dir      = src.parent / f"_chunks_{src.stem}"
+    tmp_dir.mkdir(exist_ok=True)
+    chunk_seconds = args.chunk_min * 60
 
-    print()
-    print("  GOOGLE GEMINI CLOUD MODE -- DATA PRIVACY NOTICE")
-    print("  " + "─" * 58)
-    print("  Your audio will be uploaded to Google's servers and")
-    print("  processed by the following model:")
-    print(f"    Transcription + Summary : {model}")
-    print(f"  Endpoint : {GEMINI_BASE_URL}")
-    print(f"  File     : {src.name}")
-    _privacy_gate()
-
-    print()
-    print("=" * 62)
+    print("\n=" * 62)
     print(f"  Meeting Transcriber  (Google Gemini edition)")
     print("=" * 62)
-    _print_run_header(src, txt, summary_file, args)
-    print(f"  Model          : {model}")
-    print("=" * 62)
-
-    # Step 1 — extract WAV
+    
+    # Step 1 — Extract WAV
     t_extract_done = extract_audio(args.ffmpeg, src, wav, t_start)
 
-    # Step 2 — re-encode to MP3 at 64 kbps to shrink the inline payload
-    print(f"\n[2/4] Re-encoding to MP3 (64 kbps) -> {mp3_path.name}")
-    t_enc_start = time.time()
-    encode_audio_mp3(args.ffmpeg, wav, mp3_path, bitrate="64k")
-    t_enc_done  = time.time()
-    size_mb     = mp3_path.stat().st_size / 1_048_576
-    print(f"      MP3 size : {size_mb:.1f} MB")
-    print(f"      phase {fmt_t(t_enc_done - t_enc_start):>7}  |  total {fmt_t(t_enc_done - t_start):>7}")
+    # Step 2 — Split directly into MP3 chunks to avoid LLM Laziness
+    chunks, t_split_done = split_audio_mp3(args.ffmpeg, wav, chunk_seconds, tmp_dir, t_start)
 
-    # Step 3 — transcribe
-    transcript, t_trans_end = transcribe_gemini(api_key, model, mp3_path, t_start)
-    txt.write_text(transcript, encoding="utf-8")
-    _print_transcript_saved(txt, transcript)
+    # Step 3 — Transcribe chunks sequentially
+    parts = []
+    print(f"\n[3/4] Transcribing {len(chunks)} chunks via {model}...")
+    t_trans_start = time.time()
+    
+    for i, chunk in enumerate(chunks, 1):
+        print(f"      Processing chunk {i}/{len(chunks)}...")
+        chunk_text, _ = transcribe_gemini(api_key, model, chunk, t_start)
+        parts.append(chunk_text)
+        chunk.unlink()
+        
+        # Respect Gemini API rate limits
+        if i < len(chunks):
+            time.sleep(2.0)
+            
+    t_trans_end = time.time()
+    
+    # Combine the full transcript
+    full_transcript = "\n\n".join(parts)
+    txt.write_text(full_transcript, encoding="utf-8")
+    _print_transcript_saved(txt, full_transcript)
 
-    # Step 4 — summarise
-    summary_text, phase_sum = summarise_gemini(api_key, model, transcript, src.stem, t_start)
+    # Step 4 — Summarise using the completed text
+    summary_text, phase_sum = summarise_gemini(api_key, model, full_transcript, src.stem, t_start)
     _write_summary(summary_file, src, txt, summary_text)
 
     # Cleanup
-    if not args.keep_wav:
-        for f in (wav, mp3_path):
-            if f.exists():
-                f.unlink()
-                print(f"      Deleted          -> {f.name}")
+    if not args.keep_wav and wav.exists():
+        wav.unlink()
+    if tmp_dir.exists():
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     _print_final_timings(
         t_start,
         t_extract_done   = t_extract_done,
-        t_split_done     = None,
-        t_trans_start    = t_enc_done,
+        t_split_done     = t_split_done,
+        t_trans_start    = t_trans_start,
         t_trans_end      = t_trans_end,
-        n_chunks         = 1,
+        n_chunks         = len(chunks),
         phase_sum        = phase_sum,
         txt              = txt,
         summary_file     = summary_file,
