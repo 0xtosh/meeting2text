@@ -47,7 +47,7 @@ python meeting2text.py mario.mp4 --mode local
 ### 2. Cloud Mode
 Cloud mode uploads compressed audio chunks to NVIDIA's servers to leverage high-performance multimodal models. This mode also generates a structured summary.
 ``` 
-python meeting2text.py mario.mp4 --mode cloud --api-key YOUR_NVIDIA_API_KEY
+python meeting2text.py mario.mp4 --mode cloud  --provider gemini|nvidia
 ```
 
 ## Output
@@ -95,7 +95,7 @@ DONE! Total elapsed 7m 30s
 
 ## Cloud mode using free Nvidia models
 ``` 
-C:\dojo\meeting2text>python meeting2text.py --mode cloud mario.mp4 --api-key <api key>
+C:\dojo\meeting2text>python meeting2text.py --mode cloud mario.mp4 --provider gemini|nvidia
 
   CLOUD MODE -- DATA PRIVACY NOTICE
   ──────────────────────────────────────────────────────────
