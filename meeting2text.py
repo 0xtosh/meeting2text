@@ -7,7 +7,7 @@ structured summary. Outputs a transcript .txt file and in cloud mode a _summary.
 
 Cloud providers:
   --provider nvidia   NVIDIA NIM (Phi-4 / Mistral)  [default]
-  --provider gemini   Google Gemini 2.5 Pro (audio + text)
+  --provider gemini   Google Gemini 3.1 Pro (audio + text)
 ───────────────────────────────────────────────────────────────────────────────────────────────────
 
 python meeting2text.py recording.mp4 --mode cloud --provider gemini \
